@@ -59,4 +59,8 @@ module Heroku::Command
     end
     
   end
+
+  Help.group 'Tikt Commands' do |group|
+    group.command 'tikt:list', 'show tickets'
+  end
 end
