@@ -4,4 +4,9 @@ module Heroku::Command
     group.command 'tix:list', 'show tickets'
   end
 
+  class Tix
+    def help
+      puts "Help"
+    end
+  end
 end

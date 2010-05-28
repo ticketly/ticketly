@@ -5,6 +5,8 @@ module Heroku::Command
       pp args
     end
     
-    alias :index :list
+    def index
+      list
+    end
   end
 end

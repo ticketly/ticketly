@@ -1,10 +1,16 @@
 module Heroku::Command
   class Tix
-    protected
-    
-    def verify_auth
-      get_credentials
+    def check_auth(quiet=false)
+      rest_err{get!("check_auth")}
+      display "Authorized" unless quiet
     end
+    
+    def check_project_access
+      rest_err{get!("check_proj")}
+      display "Authorized"
+    end
+    
+    protected
     
     def credentials_file
       "#{home_directory}/.heroku/plugins/ticketly/credentials"
@@ -53,7 +59,7 @@ module Heroku::Command
     def save_credentials(credentials)
       begin
         write_credentials(credentials)
-        #Heroku::Command.run_internal('keys:add', args)
+        check_auth
       rescue RestClient::Unauthorized => e
         delete_credentials
         display "\nAuthentication failed"

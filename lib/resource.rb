@@ -6,47 +6,71 @@ module Heroku::Command
         RestClient::Resource.new(uri, user, password)
       else
         host = API_PRE + @app + '.' + API_HOST
+        uri = "/api/" + uri unless uri =~ /^\//
         RestClient::Resource.new(host, user, password)[uri]
       end
     end
 
-    def get(uri, extra_headers={})    # :nodoc:
+    def get!(uri, extra_headers={})    # :nodoc:
       process(:get, uri, extra_headers)
     end
-
-    def post(uri, payload="", extra_headers={})    # :nodoc:
+    def get(uri, extra_headers={})    # :nodoc:
+      rest_err(false){get!(uri, extra_headers)}
+    end
+    def post!(uri, payload="", extra_headers={})    # :nodoc:
       process(:post, uri, extra_headers, payload)
     end
-
-    def put(uri, payload, extra_headers={})    # :nodoc:
+    def post(uri, payload="", extra_headers={})    # :nodoc:
+      rest_err(false){post!(uri, payload, extra_headers)}
+    end
+    def put!(uri, payload, extra_headers={})    # :nodoc:
       process(:put, uri, extra_headers, payload)
     end
-
-    def delete(uri, extra_headers={})    # :nodoc:
+    def put(uri, payload, extra_headers={})    # :nodoc:
+      rest_err(false){put!(uri, payload, extra_headers)}
+    end
+    def delete!(uri, extra_headers={})    # :nodoc:
       process(:delete, uri, extra_headers)
+    end
+    def delete(uri, extra_headers={})    # :nodoc:
+      rest_err(false){delete!(uri, extra_headers)}
     end
 
     def process(method, uri, extra_headers={}, payload=nil)
-      headers  = tikt_headers.merge(extra_headers)
+      headers  = tix_headers.merge(extra_headers)
       args     = [method, payload, headers].compact
       response = resource(uri).send(*args)
-
-      extract_warning(response)
-      response
+      
+      text = response.to_s
+      js = json(text)
+      display(js["warning"]) if js["warning"]
+      return js
+    end
+    
+    def rest_err(die=true)
+      begin
+        return [:success, yield]
+      rescue RestClient::Unauthorized => e
+        die ? error("Authentication failure:\n" + e.http_body) : [:unauthorized, e.http_body]
+      rescue RestClient::ResourceNotFound => e
+        die ? error("Not found::\n" + e.http_body) : [:not_found, e.http_body]
+      rescue RestClient::RequestFailed => e
+        die ? error("Request failed: internal server error\n") : [:server_error, e.http_body]
+      rescue RestClient::RequestTimeout
+        error "API request timed out. Please try again, or contact support@tikt.ly if this issue persists."
+      rescue Interrupt => e
+        error "\n[canceled]"
+      end
     end
 
     def json(resp)
-      JSON.parse(resp.to_s)
+      JSON.parse(resp)
     end
 
-    def extract_warning(response)
-      return unless response
-    end
-
-    def tikt_headers   # :nodoc:
+    def tix_headers   # :nodoc:
       {
         'X-Tikt-API-Version' => '1',
-        'User-Agent'           => 'tikt-heroku-plugin',
+        'User-Agent'           => 'tix-heroku-plugin',
         'X-Ruby-Version'       => RUBY_VERSION,
       }
     end
