@@ -1,6 +1,6 @@
 module Heroku::Command
   class Tix
-    protected
+    private
     def resource(uri)
       if uri =~ /^https?/
         RestClient::Resource.new(uri, user, password)
@@ -11,29 +11,20 @@ module Heroku::Command
       end
     end
 
-    def get!(uri, extra_headers={})    # :nodoc:
+    def get(uri, extra_headers={})    # :nodoc:
       process(:get, uri, extra_headers)
     end
-    def get(uri, extra_headers={})    # :nodoc:
-      rest_err(false){get!(uri, extra_headers)}
-    end
-    def post!(uri, payload="", extra_headers={})    # :nodoc:
+
+    def post(uri, payload="", extra_headers={})    # :nodoc:
       process(:post, uri, extra_headers, payload)
     end
-    def post(uri, payload="", extra_headers={})    # :nodoc:
-      rest_err(false){post!(uri, payload, extra_headers)}
-    end
-    def put!(uri, payload, extra_headers={})    # :nodoc:
+
+    def put(uri, payload, extra_headers={})    # :nodoc:
       process(:put, uri, extra_headers, payload)
     end
-    def put(uri, payload, extra_headers={})    # :nodoc:
-      rest_err(false){put!(uri, payload, extra_headers)}
-    end
-    def delete!(uri, extra_headers={})    # :nodoc:
-      process(:delete, uri, extra_headers)
-    end
+
     def delete(uri, extra_headers={})    # :nodoc:
-      rest_err(false){delete!(uri, extra_headers)}
+      process(:delete, uri, extra_headers)
     end
 
     def process(method, uri, extra_headers={}, payload=nil)

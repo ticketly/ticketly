@@ -1,17 +1,18 @@
 module Heroku::Command
   class Tix
-    def check_auth(quiet=false)
-      rest_err{get!("check_auth")}
-      display "Authorized" unless quiet
-    end
-    
-    def check_project_access
-      rest_err{get!("check_proj")}
-      display "Authorized"
-    end
-    
     protected
+
+    def check_auth
+      get("check_auth")
+      display("Authorized")
+    end
     
+    def check_project_auth
+      get("check_proj")
+      display("Authorized")
+    end
+
+    private
     def credentials_file
       "#{home_directory}/.heroku/plugins/ticketly/credentials"
     end
