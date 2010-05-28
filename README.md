@@ -17,8 +17,7 @@ Note that this command requires git to run.
 ("apt-get install git-core" on Ubuntu or "port install git-core" on OS X)
 
 The first time you run a command, such as "heroku tix:list," you will be prompted
-for your Ticketly username and password. If you're on a Mac, these are saved to
-your Keychain. Otherwise they are stored in plain text in ~/.heroku/plugins/ticketly/credentials
+for your Ticketly username and password. They are stored in plain text in ~/.heroku/plugins/ticketly/credentials
 for future requests.
 
 

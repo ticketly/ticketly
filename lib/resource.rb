@@ -1,10 +1,12 @@
 module Heroku::Command
   class Tix
+    protected
     def resource(uri)
       if uri =~ /^https?/
         RestClient::Resource.new(uri, user, password)
       else
-        RestClient::Resource.new("https://api.#{host}", user, password)[uri]
+        host = API_PRE + @app + '.' + API_HOST
+        RestClient::Resource.new(host, user, password)[uri]
       end
     end
 
