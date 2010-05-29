@@ -1,12 +1,39 @@
 module Heroku::Command
-  class Tix
-    private
+  class Ticketly
+    def rest_err(die=true)
+      begin
+        return [:success, yield]
+      rescue RestClient::Unauthorized => e
+        die ? error("Authentication failure:\n" + e.http_body) : [:unauthorized, e.http_body]
+      rescue RestClient::ResourceNotFound => e
+        die ? error("Not found::\n" + e.http_body) : [:not_found, e.http_body]
+      rescue RestClient::RequestFailed => e
+        if e.http_code == 400
+          die ? error("Bad request:\n" + e.http_body) : [:bad_request, e.http_body]
+        elsif e.http_code < 500
+          die ? error("Client error:\n" + e.http_body) : [:bad_request, e.http_body]
+        else
+          die ? error("Request failed: internal server error\n") : [:server_error, e.http_body]
+        end
+      rescue RestClient::RequestTimeout
+        error "API request timed out. Please try again, or contact support@tikt.ly if this issue persists."
+      rescue RestClient::Exception => e
+        error("Request failed:\n" + e.http_body)
+      rescue Interrupt => e
+        error "\n[canceled]"
+      end
+    end
+    
+    protected
     def resource(uri)
       if uri =~ /^https?/
         RestClient::Resource.new(uri, user, password)
       else
         host = API_PRE + @app + '.' + API_HOST
         uri = "/api/" + uri unless uri =~ /^\//
+        parts = uri.split('?')
+        parts[0] << '.json' unless parts[0] =~ /\.json$/
+        uri = parts.join('?')
         RestClient::Resource.new(host, user, password)[uri]
       end
     end
@@ -27,6 +54,17 @@ module Heroku::Command
       process(:delete, uri, extra_headers)
     end
 
+    def create_url(base, options)
+      url = base.dup
+      unless options.empty?
+        url << '?'
+        options.each do |k, v|
+          url << "#{k}=#{v}" if v
+        end
+      end
+      url
+    end
+    
     def process(method, uri, extra_headers={}, payload=nil)
       headers  = tix_headers.merge(extra_headers)
       args     = [method, payload, headers].compact
@@ -38,22 +76,6 @@ module Heroku::Command
       return js
     end
     
-    def rest_err(die=true)
-      begin
-        return [:success, yield]
-      rescue RestClient::Unauthorized => e
-        die ? error("Authentication failure:\n" + e.http_body) : [:unauthorized, e.http_body]
-      rescue RestClient::ResourceNotFound => e
-        die ? error("Not found::\n" + e.http_body) : [:not_found, e.http_body]
-      rescue RestClient::RequestFailed => e
-        die ? error("Request failed: internal server error\n") : [:server_error, e.http_body]
-      rescue RestClient::RequestTimeout
-        error "API request timed out. Please try again, or contact support@tikt.ly if this issue persists."
-      rescue Interrupt => e
-        error "\n[canceled]"
-      end
-    end
-
     def json(resp)
       JSON.parse(resp)
     end

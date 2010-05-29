@@ -1,7 +1,12 @@
 #!/bin/bash
 
+cmd=tix
 if [ $# -gt 0 ]; then
-  heroku tix:$@
-else
-  heroku tix
+  if [ ${1:0:1} == '-' ]; then
+    cmd="tix $@"
+  else
+    cmd="tix:$@"
+  fi
 fi
+
+heroku $cmd

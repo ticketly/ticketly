@@ -1,25 +1,29 @@
 module Heroku::Command
-  class Tix
-    protected
+  class Ticketly
 
-    def check_auth
-      get("check_auth")
-      display("Authorized")
+    def auth_check(v=true)
+      get("auth_check")
+      display("Authorized") if v
     end
     
-    def check_project_auth
-      get("check_proj")
+    def project_check
+      get("project_check")
       display("Authorized")
     end
 
-    private
+    def collaborator_sync
+      list = heroku.list_collaborators(app).collect{|c| c[:email]}
+      post("collaborator_sync", :emails => list.join(','))
+      display("Syncing collaborators #{list.join(',')}")
+    end
+
+    protected
     def credentials_file
       "#{home_directory}/.heroku/plugins/ticketly/credentials"
     end
     
     def user    # :nodoc:
-      get_credentials
-      @credentials[0]
+      command("auth:user")
     end
 
     def password    # :nodoc:
@@ -36,14 +40,8 @@ module Heroku::Command
       @credentials
     end
 
-    def ask_for_credentials
-      puts "Enter your Ticketly credentials."
-
-      print "Email: "
-      user = ask
-
-      
-      print "Password: "
+    def ask_for_credentials(prompt = "Enter your Ticketly password (email=#{user}):")
+      print prompt
       if command("auth:running_on_windows?")
         password = command("auth:ask_for_password_on_windows")
       else
@@ -51,6 +49,28 @@ module Heroku::Command
       end
       
       [ user, password ]
+    end
+    
+    def ask_create_user
+      print "No ticketly user named #{user} found.  Create one? (Y/n):"
+      ans = ask
+      if ans.empty? or ans.downcase == 'y'
+        u, p = ask_for_credentials("Please confirm your password:")
+        if p == password
+          begin
+            post("user_create", {:user => {:email => user, :password => password, :password_confirmation => password}})
+          rescue => e
+            delete_credentials
+            error("Unable to create user.\n" + e.http_body)
+          end
+        else
+          delete_credentials
+          error "passwords don't match"
+        end
+      end
+    end
+
+    def user_create
     end
 
     def read_credentials
@@ -60,7 +80,10 @@ module Heroku::Command
     def save_credentials(credentials)
       begin
         write_credentials(credentials)
-        check_auth
+        auth_check(false)
+      rescue RestClient::ResourceNotFound => e
+        ask_create_user
+        retry
       rescue RestClient::Unauthorized => e
         delete_credentials
         display "\nAuthentication failed"

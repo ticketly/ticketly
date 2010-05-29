@@ -1,24 +1,36 @@
 require 'pp'
 
 module Heroku::Command
-  class Tix < BaseWithApp
-    include Heroku::PluginInterface
-    include Heroku::Helpers
+  class Tix
 
     # public methods get called directly by heroku
     # protected methods get wrapped in rest_err to handle exceptions
     # private methods are not callable
+    
+    def initialize(args, heroku=nil)
+      @ticketly = Ticketly.new(args, heroku)
+    end
+    
     def method_missing(sym, *args)
-      if protected_methods.include?(sym.to_s)
-        rest_err{self.send(sym)}
-      else
-        super.send(sym, args)
+      #puts "method_missing:#{sym}"
+      begin
+        @ticketly.rest_err do
+          @ticketly.send(sym)
+        end
+      rescue => e
+        puts $!
+        print e.backtrace.join("\n")
       end
+    end
+    
+    def respond_to?(method)
+      @ticketly.respond_to?(method)
     end
   end
 
-  # allow heroku ticketly:command in addition to heroku tix:command
-  class Ticketly < Tix
+  class Ticketly < BaseWithApp
+    include Heroku::PluginInterface
+    include Heroku::Helpers
     def index
       help
     end

@@ -1,9 +1,8 @@
 module Heroku::Command
-  class Tix
-    protected
-    def create_project
-      post("create_project")
+  class Ticketly
+    def project_create
+      post("project_create")
       display "Project #{@app} created"
-    end  
+    end
   end
 end
