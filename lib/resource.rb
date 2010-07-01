@@ -58,11 +58,16 @@ module Heroku::Command
       url = base.dup
       unless options.empty?
         url << '?'
+        first = true
         options.each do |k, v|
-          url << "#{k}=#{v}" if v
+          if v
+            url << "&" unless first
+            url << "#{k}=#{v}"
+            first = false
+          end
         end
       end
-      url
+      url.gsub(' ', '+')
     end
     
     def process(method, uri, extra_headers={}, payload=nil)
